@@ -379,7 +379,6 @@ class GpuModeTriMulTask:
 
         return er
 
-    # Optional (not in Task Protocol): final eval helper for scripts.
     def run_final_evaluation(
         self,
         *,
@@ -423,10 +422,6 @@ class GpuModeTriMulTask:
             return int(getattr(self, "_last_round_total_workloads", 0) or 0)
         except Exception:
             return 0
-
-    def get_last_round_summary_line(self) -> str:
-        """Optional convenience hook (mirrors FlashInferBenchTask behavior)."""
-        return str(getattr(self, "_last_round_summary_line", "") or "")
 
     def get_config_for_logging(self) -> Dict[str, Any]:
         return {

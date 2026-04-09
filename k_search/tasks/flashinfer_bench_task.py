@@ -895,9 +895,6 @@ Reference Implementation:
     def get_last_round_trace_logs_for_prompt(self) -> str:
         return str(getattr(self, "_last_round_trace_logs_for_prompt", "") or "")
 
-    def get_last_round_summary_line(self) -> str:
-        return str(getattr(self, "_last_round_summary_line", "") or "")
-
     def get_last_round_passed_count(self) -> int:
         try:
             return int(getattr(self, "_last_round_passed_count", 0) or 0)

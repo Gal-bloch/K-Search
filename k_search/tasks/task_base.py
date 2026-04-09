@@ -313,8 +313,22 @@ class Task(Protocol):
     # Logging / metadata (must be JSON-friendly primitives only).
     def get_config_for_logging(self) -> Dict[str, Any]: ...
 
+    # Final evaluation for scripts/CLI (used by generate_kernels_and_eval.py).
+    def run_final_evaluation(
+        self,
+        *,
+        solutions: list[Solution],
+        config: Any = None,
+        dump_traces: bool = False,
+        workload_limit: int | None = None,
+    ) -> dict[str, Any]: ...
+
     # Optional (not required by the Protocol; generators use getattr fallbacks):
+    # - make_solution_from_generated_code(cleaned_code, raw_code, round_num, model_name, target_gpu, language) -> Solution
     # - get_baseline_targets_text() -> str
+    # - get_per_task_requirement_text(language, target_gpu, phase) -> str
+    # - get_generation_prompt(language, target_gpu) -> str
+    # - get_optimization_prompt(language, target_gpu, trace_logs, current_code, current_best, previous_round_summary) -> str
     # - has_last_round_feedback_trace() -> bool
     # - get_last_round_trace_logs_for_prompt() -> str
     # - get_last_round_passed_count() -> int

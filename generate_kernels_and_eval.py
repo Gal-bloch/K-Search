@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import uuid
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Optional
 import json
 
 def _persist_ksearch_solution(
@@ -243,7 +243,7 @@ def main():
     parser.add_argument("--local", required=False, default=None, help="Path to flashinfer-trace dataset root (flashinfer only)")
     parser.add_argument(
         "--task-source",
-        choices=["flashinfer", "gpumode"],
+        choices=["flashinfer", "gpumode", "kernelbench"],
         default="flashinfer",
         help="Task backend to use.",
     )
@@ -331,6 +331,13 @@ def main():
     parser.add_argument("--gpumode-keep-tmp", action="store_true", help="Keep GPUMode temp working dir for debugging")
     parser.add_argument("--gpumode-task-dir", default=None, help="Override GPUMode task dir (defaults to vendored trimul task)")
 
+    # KernelBench options
+    parser.add_argument("--kernelbench-level", type=int, default=1, help="KernelBench level (1, 2, or 3)")
+    parser.add_argument("--kernelbench-problem-id", type=int, default=1, help="Problem ID within the level")
+    parser.add_argument("--kernelbench-eval-mode", default="local", choices=["local", "modal"], help="Evaluation mode")
+    parser.add_argument("--kernelbench-num-correct-trials", type=int, default=5, help="Number of correctness trials")
+    parser.add_argument("--kernelbench-num-perf-trials", type=int, default=100, help="Number of performance trials")
+
     args = parser.parse_args()
 
     api_key = args.api_key or os.getenv("LLM_API_KEY")
@@ -374,8 +381,22 @@ def main():
             task_dir=(str(args.gpumode_task_dir) if args.gpumode_task_dir else None),
             artifacts_dir=args.artifacts_dir,
         )
+    elif task_source == "kernelbench":
+        from k_search.tasks.kernelbench_task import KernelBenchTask
+
+        task = KernelBenchTask(
+            level=args.kernelbench_level,
+            problem_id=args.kernelbench_problem_id,
+            eval_mode=args.kernelbench_eval_mode,
+            gpu=args.target_gpu,
+            num_correct_trials=args.kernelbench_num_correct_trials,
+            num_perf_trials=args.kernelbench_num_perf_trials,
+            artifacts_dir=args.artifacts_dir,
+            backend=args.language,  # Pass language as KernelBench evaluation backend
+        )
     else:
         raise ValueError(f"Unsupported task_source: {task_source}")
+
     generate_and_evaluate(
         task=task,
         model_name=args.model_name,
