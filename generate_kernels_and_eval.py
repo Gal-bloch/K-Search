@@ -29,7 +29,11 @@ def _persist_ksearch_solution(
         out_dir = root / "solutions" / str(definition_name or "__unknown__")
         out_dir.mkdir(parents=True, exist_ok=True)
         name = str(getattr(solution, "name", "") or "solution")
-        dest = out_dir / f"{name}.json"
+        # Sanitize the filename so model names like "org/model" don't become directories.
+        safe_name = "".join([c if (c.isalnum() or c in ("-", "_", ".")) else "_" for c in name]).strip("_")
+        if not safe_name:
+            safe_name = "solution"
+        dest = out_dir / f"{safe_name}.json"
         if KSearchSolution is not None and isinstance(solution, KSearchSolution):
             obj = solution.to_dict()
         else:
@@ -243,7 +247,7 @@ def main():
     parser.add_argument("--local", required=False, default=None, help="Path to flashinfer-trace dataset root (flashinfer only)")
     parser.add_argument(
         "--task-source",
-        choices=["flashinfer", "gpumode", "kernelbench"],
+        choices=["flashinfer", "gpumode", "kernelbench", "mlx"],
         default="flashinfer",
         help="Task backend to use.",
     )
@@ -256,7 +260,12 @@ def main():
     parser.add_argument("--model-name", required=True, help="LLM model name (e.g., gpt-4.1, gpt-5, gemini-2.5-pro via compatible endpoint)")
     parser.add_argument("--base-url", default=None, help="OpenAI-compatible base URL for non-OpenAI providers (e.g. Gemini proxy)")
     parser.add_argument("--api-key", default=None, help="API key; if omitted, uses LLM_API_KEY env var")
-    parser.add_argument("--language", default="triton", choices=["triton", "python", "cuda"], help="Target language for generated kernel")
+    parser.add_argument(
+        "--language",
+        default="triton",
+        choices=["triton", "python", "cuda", "mlx"],
+        help="Target language for generated kernel",
+    )
     parser.add_argument("--target-gpu", default="H100", help="Target GPU architecture hint for prompts")
     parser.add_argument("--max-opt-rounds", type=int, default=5, help="Max optimization rounds for each solution generation")
 
@@ -349,6 +358,9 @@ def main():
     if task_source == "flashinfer":
         from k_search.tasks.flashinfer_bench_task import FlashInferBenchTask
 
+        if str(args.language).strip().lower() == "mlx":
+            raise ValueError("--language mlx is only supported with --task-source=mlx")
+
         if not task_path:
             raise ValueError("--local or --task-path is required for --task-source=flashinfer")
         if not args.definition:
@@ -375,6 +387,9 @@ def main():
     elif task_source == "gpumode":
         from k_search.tasks.gpu_mode_task import GpuModeTriMulTask
 
+        if str(args.language).strip().lower() == "mlx":
+            raise ValueError("--language mlx is only supported with --task-source=mlx")
+
         task = GpuModeTriMulTask(
             mode=str(args.gpumode_mode or "benchmark"),
             keep_tmp=bool(args.gpumode_keep_tmp),
@@ -383,6 +398,9 @@ def main():
         )
     elif task_source == "kernelbench":
         from k_search.tasks.kernelbench_task import KernelBenchTask
+
+        if str(args.language).strip().lower() == "mlx":
+            raise ValueError("--language mlx is only supported with --task-source=mlx")
 
         task = KernelBenchTask(
             level=args.kernelbench_level,
@@ -394,6 +412,30 @@ def main():
             artifacts_dir=args.artifacts_dir,
             backend=args.language,  # Pass language as KernelBench evaluation backend
         )
+    elif task_source == "mlx":
+        # MLX task selector.
+        def_name = str(args.definition or "mlx_mamba_selective_scan_fwd").strip()
+        if def_name in (
+            "mlx_mamba",
+            "mlx_mamba_selective_scan_fwd",
+        ):
+            from k_search.tasks.mlx_mamba_task import MlxMambaSelectiveScanFwdTask
+
+            task = MlxMambaSelectiveScanFwdTask(
+                warmup_runs=args.warmup_runs,
+                iterations=args.iterations,
+                rtol=args.rtol,
+                atol=args.atol,
+                timeout_seconds=300,
+                artifacts_dir=args.artifacts_dir,
+                name="mlx_mamba_selective_scan_fwd",
+            )
+        else:
+            raise ValueError(
+                "Unknown MLX definition. Use --definition one of: "
+                "mlx_mamba_selective_scan_fwd. "
+                f"Got {def_name!r}."
+            )
     else:
         raise ValueError(f"Unsupported task_source: {task_source}")
 
