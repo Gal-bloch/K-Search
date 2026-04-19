@@ -322,7 +322,6 @@ def get_generate_code_from_action_prompt_from_text(
             definition=str(definition_text or "").strip(),
             base_code=base_code,
             action_text=action_text,
-            target_gpu=target_gpu,
             code_format=str(code_format or "").strip(),
         )
     if lang == "cuda":
@@ -384,7 +383,6 @@ def get_generate_code_from_spec_with_action_prompt_from_text(
                 definition=str(definition_text or "").strip(),
                 base_code="(no base code; start from spec)",
                 action_text=action_text,
-                target_gpu=target_gpu,
                 code_format=str(code_format or "").strip(),
             )
         )
@@ -485,7 +483,6 @@ def get_debug_generated_code_prompt_from_text(
             action_text=action_text,
             debug_round=dr,
             max_rounds=mr,
-            target_gpu=target_gpu,
             code_format=str(code_format or "").strip(),
         )
     raise ValueError(f"Unsupported language for debug prompt: {language}")
@@ -579,7 +576,6 @@ def get_improve_generated_code_prompt_from_text(
             trace_logs=str(trace_logs or "").strip() or "(no logs)",
             debug_round=dr,
             max_rounds=mr,
-            target_gpu=target_gpu,
             code_format=str(code_format or "").strip(),
         )
     raise ValueError(f"Unsupported language for improve prompt: {language}")
