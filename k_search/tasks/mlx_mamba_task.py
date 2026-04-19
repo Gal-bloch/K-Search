@@ -26,6 +26,7 @@ from k_search.tasks.mlx_mamba.spec import (
     MambaSelectiveScanFwdWorkload,
     get_definition_text_mlx,
 )
+from k_search.utils.metal_gpu_info import get_gpu_info, get_metal_device_name
 
 
 @dataclass(frozen=True)
@@ -112,7 +113,11 @@ class MlxMambaSelectiveScanFwdTask:
         return None
 
     def get_generation_prompt(self, *, language: str, target_gpu: str) -> str:
-        return f"{self.get_definition_text(language=language).strip()}\n\nTarget hardware: Apple Silicon {target_gpu}\n"
+        # NOTE: `target_gpu` is ignored for MLX tasks; we auto-detect hardware when possible.
+        hw = get_gpu_info().strip()
+        if not hw:
+            hw = "Target hardware: Apple Silicon (auto-detect unavailable)"
+        return f"{self.get_definition_text(language=language).strip()}\n\n{hw}\n"
 
     def get_optimization_prompt(
         self,
@@ -125,8 +130,11 @@ class MlxMambaSelectiveScanFwdTask:
         previous_round_summary: str | None = None,
     ) -> str:
         base = self.get_definition_text(language=language).rstrip()
+        hw = get_gpu_info().strip()
+        if not hw:
+            hw = "Target hardware: Apple Silicon (auto-detect unavailable)"
         parts: list[str] = [
-            f"{base}\n\nTarget hardware: Apple Silicon {target_gpu}",
+            f"{base}\n\n{hw}",
             f"Current implementation:\n{str(current_code or '').strip()}",
         ]
         if previous_round_summary:
@@ -162,13 +170,14 @@ class MlxMambaSelectiveScanFwdTask:
     ) -> Solution:
         code_text = str(cleaned_code or "") or str(raw_code or "")
         sol_name = f"{model_name}_{self._name}_mlx_r{int(round_num)}"
+        hw = get_metal_device_name().strip() or "AppleSilicon"
         sol = Solution(
             name=sol_name,
             definition=self._name,
             author=str(model_name),
             spec=BuildSpec(
                 language=SupportedLanguages.MLX,
-                target_hardware=[str(target_gpu)],
+                target_hardware=[hw],
                 entry_point="submission.py::run",
             ),
             sources=[SourceFile(path="submission.py", content=code_text)],

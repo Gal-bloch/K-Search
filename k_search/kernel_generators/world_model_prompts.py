@@ -39,6 +39,8 @@ Generate the updated implementation:"""
 
 MLX_ACTION_PROMPT = """You are implementing a SPECIFIC NEXT ACTION on top of a known-good MLX (Apple Silicon) baseline.
 
+{gpu_info}
+
 Original Specification:
 {definition}
 
@@ -122,6 +124,8 @@ Generate the corrected implementation:"""
 
 MLX_DEBUG_PROMPT = """You are in a debug-and-improve loop for an MLX (Apple Silicon) kernel.
 The current implementation may be buggy OR already correct-but-slower-than-desired.
+
+{gpu_info}
 
 Original Specification:
 {definition}
@@ -228,6 +232,8 @@ Generate the improved implementation:"""
 MLX_IMPROVE_PROMPT = """You are improving an MLX (Apple Silicon) kernel.
 The current implementation may be correct-but-slower-than-desired, or it may have regressed.
 
+{gpu_info}
+
 Original Specification:
 {definition}
 
@@ -309,7 +315,10 @@ def get_generate_code_from_action_prompt_from_text(
             hints=TRITON_OPTIMIZATION_HINTS,
         )
     if lang == "mlx":
+        from k_search.utils.metal_gpu_info import get_gpu_info
+
         return MLX_ACTION_PROMPT.format(
+            gpu_info=(get_gpu_info().strip() or "(GPU auto-detect unavailable)"),
             definition=str(definition_text or "").strip(),
             base_code=base_code,
             action_text=action_text,
@@ -366,9 +375,12 @@ def get_generate_code_from_spec_with_action_prompt_from_text(
             )
         )
     if lang == "mlx":
+        from k_search.utils.metal_gpu_info import get_gpu_info
+
         return (
             "You are implementing a SPECIFIC NEXT ACTION starting from the specification.\n\n"
             + MLX_ACTION_PROMPT.format(
+                gpu_info=(get_gpu_info().strip() or "(GPU auto-detect unavailable)"),
                 definition=str(definition_text or "").strip(),
                 base_code="(no base code; start from spec)",
                 action_text=action_text,
@@ -461,7 +473,10 @@ def get_debug_generated_code_prompt_from_text(
             hints=CUDA_OPTIMIZATION_HINTS,
         )
     if lang == "mlx":
+        from k_search.utils.metal_gpu_info import get_gpu_info
+
         return MLX_DEBUG_PROMPT.format(
+            gpu_info=(get_gpu_info().strip() or "(GPU auto-detect unavailable)"),
             definition=str(definition_text or "").strip(),
             base_code=base_code,
             buggy_code=buggy_code,
@@ -553,7 +568,10 @@ def get_improve_generated_code_prompt_from_text(
             hints=CUDA_OPTIMIZATION_HINTS,
         )
     if lang == "mlx":
+        from k_search.utils.metal_gpu_info import get_gpu_info
+
         return MLX_IMPROVE_PROMPT.format(
+            gpu_info=(get_gpu_info().strip() or "(GPU auto-detect unavailable)"),
             definition=str(definition_text or "").strip(),
             base_code=base_code,
             current_code=current_code,

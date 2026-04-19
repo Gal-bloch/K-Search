@@ -349,6 +349,21 @@ def main():
 
     args = parser.parse_args()
 
+    # MLX runs on Apple Silicon; the CUDA-style --target-gpu hint is not meaningful.
+    # If Metal is available, replace it with an auto-detected device name so we don't
+    # accidentally label runs as "H100".
+    if str(getattr(args, "task_source", "")).strip().lower() == "mlx":
+        try:
+            from k_search.utils.metal_gpu_info import get_metal_device_name
+
+            detected = get_metal_device_name().strip()
+            if detected:
+                args.target_gpu = detected
+            else:
+                args.target_gpu = "AppleSilicon"
+        except Exception:
+            args.target_gpu = "AppleSilicon"
+
     api_key = args.api_key or os.getenv("LLM_API_KEY")
     if not api_key:
         raise ValueError("API key is required (pass --api-key or set LLM_API_KEY)")

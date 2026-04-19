@@ -8,7 +8,6 @@
 #
 # Task/generation:
 # - LANGUAGE: mlx (default: mlx)
-# - TARGET_GPU: Apple Silicon hint (e.g., M1/M2/M3/M4) (default: M3)
 # - MAX_OPT_ROUNDS: (default: 50)
 # - ARTIFACTS_DIR: base output dir (default: .ksearch-output-mlx-mamba)
 #
@@ -27,7 +26,6 @@ API_KEY="${API_KEY:-${LLM_API_KEY:-}}"
 BASE_URL="${BASE_URL:-https://us.api.openai.com/v1}"
 
 LANGUAGE="${LANGUAGE:-mlx}"
-TARGET_GPU="${TARGET_GPU:-M3}"
 MAX_OPT_ROUNDS="${MAX_OPT_ROUNDS:-50}"
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-.ksearch-output-mlx-mamba}"
 
@@ -65,7 +63,6 @@ python3 -u "${KSEARCH_ROOT}/generate_kernels_and_eval.py" \
   --api-key "${API_KEY}" \
   --base-url "${BASE_URL}" \
   --language "${LANGUAGE}" \
-  --target-gpu "${TARGET_GPU}" \
   --max-opt-rounds "${MAX_OPT_ROUNDS}" \
   --warmup-runs 3 \
   --iterations 10 \
