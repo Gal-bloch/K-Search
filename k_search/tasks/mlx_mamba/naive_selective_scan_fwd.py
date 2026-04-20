@@ -33,7 +33,7 @@ def run(
     delta = delta.astype(mx.float32)
 
     if delta_bias is not None:
-        delta = delta + mx.expand_dims(delta_bias.astype(mx.float32), axis=-1)
+        delta = delta + mx.reshape(delta_bias.astype(mx.float32), (1, -1, 1))
 
     if delta_softplus:
         delta = _softplus(delta)

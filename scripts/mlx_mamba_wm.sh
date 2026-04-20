@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # MLX Mamba selective scan forward launcher for k-search (World Model generator).
 #
 # Environment variables (common):

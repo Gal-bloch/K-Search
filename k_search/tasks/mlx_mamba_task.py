@@ -91,7 +91,7 @@ class MlxMambaSelectiveScanFwdTask:
 
     def get_definition_text(self, language: str | None = None) -> str:
         lang = str(language or "").strip().lower() or "mlx"
-        if lang not in ("mlx", "python"):
+        if lang != "mlx":
             raise ValueError(f"MlxMambaSelectiveScanFwdTask only supports language='mlx'; got {lang!r}")
         return get_definition_text_mlx() + "\n"
 

@@ -114,12 +114,26 @@ def get_gpu_info() -> str:
     except Exception:
         return ""
 
-    name: str = device.name()
-    max_tg = device.maxThreadsPerThreadgroup()
+    def _safe_device_call(method_name: str, default):
+        """Best-effort call for optional/OS-version-dependent Metal device methods."""
+        try:
+            fn = getattr(device, method_name, None)
+            if not callable(fn):
+                return default
+            return fn()
+        except Exception:
+            return default
+
+    name: str = str(_safe_device_call("name", "") or "")
+    max_tg = _safe_device_call("maxThreadsPerThreadgroup", None)
     max_threads_per_tg: int = max_tg.width if hasattr(max_tg, "width") else 1024
-    tg_mem: int = device.maxThreadgroupMemoryLength()
-    unified: bool = device.hasUnifiedMemory()
-    working_set_gb = device.recommendedMaxWorkingSetSize() / (1024**3)
+    tg_mem: int = int(_safe_device_call("maxThreadgroupMemoryLength", 0) or 0)
+    unified: bool = bool(_safe_device_call("hasUnifiedMemory", False))
+    working_set_raw = _safe_device_call("recommendedMaxWorkingSetSize", 0)
+    try:
+        working_set_gb = float(working_set_raw) / (1024**3)
+    except Exception:
+        working_set_gb = 0.0
 
     # Detect highest supported GPU family
     family_code: int | None = None

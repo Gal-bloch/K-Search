@@ -38,7 +38,24 @@ def _persist_ksearch_solution(
             obj = solution.to_dict()
         else:
             obj = solution.__dict__ if hasattr(solution, "__dict__") else {"solution": str(solution)}
-        dest.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        payload = json.dumps(obj, ensure_ascii=False, indent=2)
+        dest.write_text(payload, encoding="utf-8")
+
+        # Backward-compatibility: also persist under the original unsanitized
+        # solution name so loaders that resolve by "<solution_ref>.json" keep
+        # working for names that contain characters sanitized above.
+        if name != safe_name:
+            legacy_dest = (out_dir / f"{name}.json")
+            legacy_dest_resolved = legacy_dest.resolve()
+            try:
+                legacy_dest_resolved.relative_to(out_dir.resolve())
+            except ValueError:
+                legacy_dest_resolved = None
+
+            if legacy_dest_resolved is not None and legacy_dest_resolved != dest.resolve():
+                legacy_dest_resolved.parent.mkdir(parents=True, exist_ok=True)
+                legacy_dest_resolved.write_text(payload, encoding="utf-8")
         return dest
     except Exception as e:
         print(f"Error saving k-search solution: {e}")
@@ -350,8 +367,7 @@ def main():
     args = parser.parse_args()
 
     # MLX runs on Apple Silicon; the CUDA-style --target-gpu hint is not meaningful.
-    # If Metal is available, replace it with an auto-detected device name so we don't
-    # accidentally label runs as "H100".
+    # If Metal is available, replace it with an auto-detected device name
     if str(getattr(args, "task_source", "")).strip().lower() == "mlx":
         try:
             from k_search.utils.metal_gpu_info import get_metal_device_name
